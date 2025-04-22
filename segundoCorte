@@ -1,0 +1,143 @@
+class Inmueble:
+    def __init__(self, id, direccion, precio):
+        self.id = id
+        self.direccion = direccion
+        self.precio = precio
+        self.vendido = False
+        self.alquilado = False
+
+
+class InmuebleVenta(Inmueble):
+    def __init__(self, id, direccion, precio):
+        super().__init__(id, direccion, precio)
+        self.comision_empresa = 0
+        self.comision_asesor = 0
+
+    def vender(self):
+        if not self.vendido:
+            self.vendido = True
+            self.comision_empresa = self.precio * 0.10
+            self.comision_asesor = self.precio * 0.03
+            return self.comision_empresa
+        else:
+            return 0
+
+
+class InmuebleArriendo(Inmueble):
+    def __init__(self, id, direccion, precio_mensual, porcentaje_empresa):
+        super().__init__(id, direccion, precio_mensual)
+        self.porcentaje_empresa = porcentaje_empresa
+        self.meses_alquilado = 0
+        self.ganancias_por_mes = {}
+
+    def alquilar(self, meses, mes_inicio):
+        self.alquilado = True
+        self.meses_alquilado += meses
+        for i in range(meses):
+            mes = (mes_inicio + i - 1) % 12 + 1
+            if mes not in self.ganancias_por_mes:
+                self.ganancias_por_mes[mes] = 0
+            ganancia = self.precio * self.porcentaje_empresa
+            self.ganancias_por_mes[mes] += ganancia
+        return sum(self.ganancias_por_mes.values())
+
+
+class Inmobiliaria:
+    def __init__(self):
+        self.inmuebles = []
+        self.ganancia_ventas = 0
+        self.ganancia_arriendos = {}
+        self.total_comisiones_asesores = 0
+
+    def registrar_inmueble(self, inmueble):
+        self.inmuebles.append(inmueble)
+
+    def vender_inmueble(self, id):
+        for inmueble in self.inmuebles:
+            if inmueble.id == id and isinstance(inmueble, InmuebleVenta):
+                ganancia = inmueble.vender()
+                self.ganancia_ventas += ganancia
+                self.total_comisiones_asesores += inmueble.comision_asesor
+                print("Inmueble vendido.")
+                return
+        print("Inmueble no encontrado o ya vendido.")
+
+    def alquilar_inmueble(self, id, meses, mes_inicio):
+        for inmueble in self.inmuebles:
+            if inmueble.id == id and isinstance(inmueble, InmuebleArriendo):
+                ganancia = inmueble.alquilar(meses, mes_inicio)
+                for mes, valor in inmueble.ganancias_por_mes.items():
+                    if mes not in self.ganancia_arriendos:
+                        self.ganancia_arriendos[mes] = 0
+                    self.ganancia_arriendos[mes] += valor
+                print("Inmueble alquilado.")
+                return
+        print("Inmueble no encontrado o no es de arriendo.")
+
+    def mostrar_estadisticas(self):
+        print("Ganancia por ventas:", self.ganancia_ventas)
+        print("Ganancia por arriendos:", sum(self.ganancia_arriendos.values()))
+        if self.ganancia_ventas > sum(self.ganancia_arriendos.values()):
+            print("Se gana más por VENTAS")
+        else:
+            print("Se gana más por ARRIENDOS")
+
+        if self.ganancia_arriendos:
+            mes_mayor = max(self.ganancia_arriendos, key=self.ganancia_arriendos.get)
+            print("Mes con más ganancias de arriendo:", mes_mayor)
+        print("Total comisiones para asesores:", self.total_comisiones_asesores)
+
+
+def menu():
+    empresa = Inmobiliaria()
+    while True:
+        print("\n--- Menú Inmobiliaria ---")
+        print("1. Registrar inmueble")
+        print("2. Vender inmueble")
+        print("3. Alquilar inmueble")
+        print("4. Ver estadísticas")
+        print("5. Salir")
+        opcion = input("Elija una opción: ")
+
+        try:
+            if opcion == "1":
+                tipo = input("¿Es para venta o arriendo? (venta/arriendo): ")
+                id = input("ID del inmueble: ")
+                direccion = input("Dirección: ")
+                precio = float(input("Precio (o canon mensual): "))
+
+                if tipo == "venta":
+                    inmueble = InmuebleVenta(id, direccion, precio)
+                elif tipo == "arriendo":
+                    porcentaje = float(input("Porcentaje de ganancia de la empresa (ej: 0.1 para 10%): "))
+                    inmueble = InmuebleArriendo(id, direccion, precio, porcentaje)
+                else:
+                    print("Tipo no válido.")
+                    continue
+                empresa.registrar_inmueble(inmueble)
+                print("Inmueble registrado.")
+            
+            elif opcion == "2":
+                id = input("ID del inmueble a vender: ")
+                empresa.vender_inmueble(id)
+            
+            elif opcion == "3":
+                id = input("ID del inmueble a alquilar: ")
+                meses = int(input("¿Cuántos meses? "))
+                mes_inicio = int(input("¿Mes de inicio? (1-12): "))
+                empresa.alquilar_inmueble(id, meses, mes_inicio)
+
+            elif opcion == "4":
+                empresa.mostrar_estadisticas()
+            
+            elif opcion == "5":
+                break
+            else:
+                print("Opción no válida.")
+        except ValueError:
+            print("Entrada inválida. Asegúrate de escribir bien los números.")
+        except Exception as e:
+            print("Ocurrió un error:", e)
+
+
+menu()
